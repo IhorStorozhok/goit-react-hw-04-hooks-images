@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { animateScroll as scroll } from "react-scroll";
 import { ToastContainer, toast } from "react-toastify";
 import PropTypes from "prop-types";
@@ -12,155 +12,157 @@ import Modal from "./Components/Modal/Modal";
 import Searchbar from "./Components/Searchbar/Searchbar";
 import findImages from "./Components/Api/Api";
 
-class App extends React.Component {
-  state = {
-    images: [],
-    status: "idle",
-    queryName: "",
-    chosenImgId: "",
-    showModal: false,
-    page: 1,
-  };
+const App = () => {
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState("idle");
+  const [queryName, setQueryName] = useState("");
+  const [chosenImgId, setChosenImgId] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  // state = {
+  //   images: [],
+  //   status: "idle",
+  //   queryName: "",
+  //   chosenImgId: "",
+  //   showModal: false,
+  //   page: 1,
+  // };
 
   //starting upload
-  componentDidMount() {
-    const { state, toster } = this;
 
-    if (state.images.length === 0) {
-      this.setState({ status: "pending" });
+  useEffect(() => {
+    if (images.length === 0) {
+      setStatus("pending");
       findImages("home", 1)
         .then((arr) => {
-          this.setState({ images: arr, status: "resolved" });
+          setImages(arr);
+          setStatus("resolved");
         })
         .catch((error) => {
-          this.setState({ status: "reject" });
+          setStatus("reject");
           toster();
         });
     }
+  }, []);
 
-    //close modal by esc
+  //close modal by esc
 
-    const onCloseModal = (e) => {
-      if (e.key === "Escape" && this.state.showModal === true) {
-        this.setState({ showModal: false });
-      }
-    };
+  const onCloseModal = (e) => {
+    if (e.key === "Escape" && showModal === true) {
+      setShowModal(false);
+    }
+  };
 
-    window.addEventListener("keydown", onCloseModal);
-  }
+  window.addEventListener("keydown", onCloseModal);
 
   //////////Modal`s methods///////////////
 
-  toggleModal = () => {
-    this.setState({ showModal: !this.state.showModal });
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  openModal = (e) => {
+  const openModal = (e) => {
     const imgId = e.target.id;
-    const imgIndex = this.state.images.findIndex((obj) => {
+    const imgIndex = images.findIndex((obj) => {
       return obj.id == imgId;
     });
-    this.setState({ chosenImgId: imgIndex });
-    this.toggleModal();
+    setChosenImgId(imgIndex);
+    toggleModal();
   };
 
-  handleBackdropClick = (e) => {
+  const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
-      this.toggleModal();
+      toggleModal();
     }
   };
 
   //////////auto scroling///////////////
 
-  scrollToBottom() {
+  const scrollToBottom = () => {
     scroll.scrollToBottom();
-  }
+  };
 
-  scrollToUp() {
+  const scrollToUp = () => {
     scroll.scrollToTop();
-  }
+  };
 
   //////////take value from input///////////////
-  getQuery = (queryName) => {
-    this.setState({ queryName: queryName, status: "pending" });
+  const getQuery = (queryName) => {
+    setQueryName(queryName);
+    setStatus("pending");
 
     findImages(queryName, 1)
       .then((arr) => {
-        this.setState((prevState) => {
-          return { images: [...arr], page: 1, status: "resolved" };
-        });
+        setImages([...arr]);
+        setPage(1);
+        setStatus("resolved");
+        // this.setState((prevState) => {
+        //   return { images: [...arr], page: 1, status: "resolved" };
+        // });
       })
       .catch((error) => {
-        this.setState({ status: "reject" });
-        this.toster();
+        setStatus("reject");
+        toster();
       });
   };
 
   //////////Load more images///////////////
-  loadMore = () => {
-    this.setState({ status: "pending" });
-    findImages(
-      this.state.queryName,
-      this.state.page === 1 ? 2 : this.state.page
-    )
+  const loadMore = () => {
+    setStatus("pending");
+
+    findImages(queryName, page + 1)
       .then((arr) => {
-        this.setState((prevState) => {
-          return {
-            images: [...prevState.images, ...arr],
-            page: prevState.page + 1,
-            status: "resolved",
-          };
-        });
+        const newArr = [...images, ...arr];
+
+        setPage(page + 1);
+        setImages(newArr);
+        setStatus("resolved");
       })
       .catch((error) => {
-        this.setState({ status: "reject" });
-        this.toster();
+        setStatus("reject");
+        toster();
       });
-    this.scrollToBottom();
+    scrollToBottom();
   };
 
   //////////Alert///////////////
-  toster = () => {
+  function toster() {
     toast.error("Ooops Let`s try it again");
-  };
-
-  render() {
-    const { images, status, queryName, chosenImgId, showModal } = this.state;
-    const { getQuery, openModal, loadMore, handleBackdropClick } = this;
-    return (
-      <>
-        <Searchbar submit={getQuery}></Searchbar>
-        {images.length > 0 && status === "resolved" && (
-          <ImageGallery images={images} onClickItem={openModal}></ImageGallery>
-        )}
-
-        {status === "pending" && <Spinner />}
-
-        {images.length % 12 === 0 &&
-          images.length !== 0 &&
-          queryName !== "" && <Button handleButton={loadMore}></Button>}
-
-        {showModal && (
-          <Modal
-            img={images[chosenImgId]}
-            handleBackdropClick={handleBackdropClick}
-          />
-        )}
-
-        <button className="upperButton" type="button" onClick={this.scrollToUp}>
-          Go up!
-        </button>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-        />
-      </>
-    );
   }
-}
+
+  return (
+    <>
+      <Searchbar submit={getQuery}></Searchbar>
+      {images.length > 0 && status === "resolved" && (
+        <ImageGallery images={images} onClickItem={openModal}></ImageGallery>
+      )}
+
+      {status === "pending" && <Spinner />}
+
+      {images.length % 12 === 0 && images.length !== 0 && queryName !== "" && (
+        <Button handleButton={loadMore}></Button>
+      )}
+
+      {showModal && (
+        <Modal
+          img={images[chosenImgId]}
+          handleBackdropClick={handleBackdropClick}
+        />
+      )}
+
+      <button className="upperButton" type="button" onClick={scrollToUp}>
+        Go up!
+      </button>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+      />
+    </>
+  );
+};
 
 export default App;
